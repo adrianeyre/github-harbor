@@ -10,12 +10,13 @@ import { renderChangelog } from './changelog';
 import { GitHubError, listRepos, type RepoListing } from './github';
 import { cloneScriptFilename, generateCloneScript } from './scripts/clone';
 import { generateUpdateScript, updateScriptFilename } from './scripts/update';
-import type { Protocol, Repo, Shell, StorageKind } from './types';
+import type { Os, Protocol, Repo, StorageKind } from './types';
 import { makeDialog, type Dialog } from './ui/dialog';
 import { $, announce, escapeHtml, icon } from './ui/dom';
-import { clearSettings, loadSettings, saveSettings } from './ui/settings';
-
-type Mode = 'clone' | 'update';
+import { gitPrerequisite, pathExamples, pathWarning, runSteps, type Mode } from './ui/platforms';
+import {
+  clearSettings, loadSettings, recentPaths, rememberLocation, rememberOwner, saveSettings, shellFor,
+} from './ui/settings';
 
 const settings = loadSettings();
 const save = () => saveSettings(settings);
@@ -56,36 +57,6 @@ interface DestinationUi {
 
 const destinations = {} as Record<Mode, DestinationUi>;
 
-function pathExamples(storage: StorageKind, shell: Shell, mode: Mode): { placeholder: string; hint: string } {
-  const owner = mode === 'clone' ? settings.owner.trim() || 'my-org' : 'my-org';
-  const tail = mode === 'clone' ? ' The folder is created if it doesn’t exist, with one sub-folder per repository.' : '';
-  if (storage === 'nas') {
-    return shell === 'powershell'
-      ? { placeholder: `\\\\nas\\share\\code\\${owner}`, hint: `A network path such as \\\\nas\\share\\code\\${owner}, or a mapped drive such as Z:\\code\\${owner}.${tail}` }
-      : { placeholder: `/Volumes/share/code/${owner}`, hint: `Where the share is mounted, such as /Volumes/share/code/${owner} on macOS or /mnt/nas/code/${owner} on Linux.${tail}` };
-  }
-  return shell === 'powershell'
-    ? { placeholder: `C:\\Code\\${owner}`, hint: `For example C:\\Code\\${owner}, D:\\Repos\\${owner} or ~\\Code\\${owner}.${tail}` }
-    : { placeholder: `~/code/${owner}`, hint: `For example ~/code/${owner} or /Users/me/code/${owner}.${tail}` };
-}
-
-/** A gentle check that the path suits the shell and storage chosen. Never blocks the script. */
-function pathWarning(path: string, storage: StorageKind, shell: Shell): string {
-  const p = path.trim();
-  if (!p) return '';
-  const windowsish = /^[A-Za-z]:([\\/]|$)/.test(p) || p.startsWith('\\\\') || (p.includes('\\') && !p.includes('/'));
-  if (shell === 'bash' && windowsish) {
-    return 'This looks like a Windows path, but the script is for macOS or Linux. Choose Windows (PowerShell) above, or use a path such as /mnt/nas/code.';
-  }
-  if (shell === 'powershell' && p.startsWith('/') && !p.startsWith('//')) {
-    return 'This looks like a macOS or Linux path, but the script is for Windows. Choose macOS / Linux (Bash) above, or use a path such as C:\\Code.';
-  }
-  if (storage === 'nas' && shell === 'powershell' && /^[Cc]:/.test(p)) {
-    return 'C: is usually this computer’s own disk. For a NAS, use its network path, such as \\\\nas\\share\\code, or its mapped drive letter.';
-  }
-  return '';
-}
-
 function renderDestination(mode: Mode): void {
   const host = $(`[data-destination="${mode}"]`);
   const s = settings[mode];
@@ -106,17 +77,20 @@ function renderDestination(mode: Mode): void {
         </label>
       </div>
     </fieldset>
-    <fieldset class="field">
+    <fieldset class="field segmented-field">
       <legend>Computer you’ll run the script on</legend>
       <div class="segmented">
-        <label><input type="radio" name="${k}-shell" value="powershell" ${s.shell === 'powershell' ? 'checked' : ''} /><span>Windows (PowerShell)</span></label>
-        <label><input type="radio" name="${k}-shell" value="bash" ${s.shell === 'bash' ? 'checked' : ''} /><span>macOS / Linux (Bash)</span></label>
+        <label><input type="radio" name="${k}-os" value="windows" ${s.os === 'windows' ? 'checked' : ''} /><span>Windows</span></label>
+        <label><input type="radio" name="${k}-os" value="macos" ${s.os === 'macos' ? 'checked' : ''} /><span>macOS</span></label>
+        <label><input type="radio" name="${k}-os" value="linux" ${s.os === 'linux' ? 'checked' : ''} /><span>Linux</span></label>
       </div>
+      <p class="hint" id="${k}-os-hint"></p>
     </fieldset>
     <div class="field">
       <label for="${k}-path">${mode === 'clone' ? 'Destination folder' : 'Folder that holds your clones'}</label>
       <p class="hint" id="${k}-path-hint"></p>
-      <input id="${k}-path" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="${k}-path-hint ${k}-path-warning" />
+      <input id="${k}-path" type="text" list="${k}-path-recent" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="${k}-path-hint ${k}-path-warning" />
+      <datalist id="${k}-path-recent"></datalist>
       <p class="field-warning" id="${k}-path-warning" hidden></p>
     </div>`;
   const ui: DestinationUi = { path: $(`#${k}-path`, host), hint: $(`#${k}-path-hint`, host), warning: $(`#${k}-path-warning`, host) };
@@ -126,7 +100,7 @@ function renderDestination(mode: Mode): void {
   host.addEventListener('change', (event) => {
     const input = event.target as HTMLInputElement;
     if (input.name === `${k}-storage`) s.storage = input.value as StorageKind;
-    if (input.name === `${k}-shell`) s.shell = input.value as Shell;
+    if (input.name === `${k}-os`) s.os = input.value as Os;
     save();
     refresh(mode);
   });
@@ -140,10 +114,15 @@ function renderDestination(mode: Mode): void {
 function refreshDestination(mode: Mode): void {
   const s = settings[mode];
   const ui = destinations[mode];
-  const { placeholder, hint } = pathExamples(s.storage, s.shell, mode);
+  const owner = (mode === 'clone' && settings.owner.trim()) || 'my-org';
+  const { placeholder, hint } = pathExamples(s.storage, s.os, mode, owner);
+  $(`#${mode}-os-hint`).textContent = s.os === 'windows' ? 'You’ll get a PowerShell script.' : 'You’ll get a Bash script.';
   ui.path.placeholder = placeholder;
   ui.hint.textContent = hint;
-  const warning = pathWarning(s.path, s.storage, s.shell);
+  const recent = recentPaths(settings, s.storage, s.os);
+  if (recent.length > 0) ui.hint.textContent += ' Folders you’ve used before are suggested in the field.';
+  $(`#${mode}-path-recent`).replaceChildren(...recent.map((path) => Object.assign(document.createElement('option'), { value: path })));
+  const warning = pathWarning(s.path, s.storage, s.os);
   ui.warning.hidden = !warning;
   ui.warning.innerHTML = warning ? `${icon('alert')}<span>${escapeHtml(warning)}</span>` : '';
 }
@@ -159,6 +138,7 @@ interface OutputUi {
   copy: HTMLButtonElement;
   download: HTMLButtonElement;
   openStep: HTMLElement;
+  prerequisite: HTMLElement;
   command: HTMLElement;
   copyCommand: HTMLButtonElement;
   script: string;
@@ -195,7 +175,8 @@ function renderOutput(mode: Mode): void {
             <span class="command-row"><code class="command"></code><button type="button" class="button button-small" data-action="copy-command">${icon('copy')}<span>Copy<span class="visually-hidden"> command</span></span></button></span>
           </li>
         </ol>
-        <p class="hint">The script prints each repository as it goes and a summary at the end. You need <a href="https://git-scm.com/downloads">git</a> installed. Read it first if you like: it is plain text.</p>
+        <p class="hint prerequisite"></p>
+        <p class="hint">The script prints each repository as it goes and a summary at the end. If git is missing, it says how to install it and stops. Read it first if you like: it is plain text.</p>
       </div>
     </div>`;
   const ui: OutputUi = {
@@ -207,15 +188,26 @@ function renderOutput(mode: Mode): void {
     copy: $<HTMLButtonElement>('[data-action="copy"]', host),
     download: $<HTMLButtonElement>('[data-action="download"]', host),
     openStep: $('.open-step', host),
+    prerequisite: $('.prerequisite', host),
     command: $('.command', host),
     copyCommand: $<HTMLButtonElement>('[data-action="copy-command"]', host),
     script: '',
   };
   outputs[mode] = ui;
 
-  ui.copy.addEventListener('click', () => copyText(ui.script, ui.copy, 'Script copied to the clipboard'));
+  // A folder is remembered once a script is actually taken for it, not on every keystroke.
+  const rememberDestination = () => {
+    rememberLocation(settings, settings[mode]);
+    save();
+    refreshDestination(mode);
+  };
+  ui.copy.addEventListener('click', () => {
+    rememberDestination();
+    void copyText(ui.script, ui.copy, 'Script copied to the clipboard');
+  });
   ui.copyCommand.addEventListener('click', () => copyText(ui.command.textContent ?? '', ui.copyCommand, 'Command copied to the clipboard'));
   ui.download.addEventListener('click', () => {
+    rememberDestination();
     const name = ui.filename.textContent ?? 'script.txt';
     const isPs = name.endsWith('.ps1');
     // Windows PowerShell 5.1 reads a .ps1 without a byte-order mark as ANSI, mangling non-English folder names.
@@ -257,7 +249,7 @@ async function copyText(text: string, button: HTMLButtonElement, message: string
   announce(message);
 }
 
-function showOutput(mode: Mode, missing: string[], make: () => { script: string; filename: string; shell: Shell }): void {
+function showOutput(mode: Mode, missing: string[], make: () => { script: string; filename: string; os: Os }): void {
   const ui = outputs[mode];
   ui.missing.hidden = missing.length === 0;
   ui.ready.hidden = missing.length > 0;
@@ -266,15 +258,14 @@ function showOutput(mode: Mode, missing: string[], make: () => { script: string;
     ui.script = '';
     return;
   }
-  const { script, filename, shell } = make();
+  const { script, filename, os } = make();
   ui.script = script;
   ui.filename.textContent = filename;
   ui.code.textContent = script;
-  ui.openStep.textContent =
-    shell === 'powershell'
-      ? 'Open PowerShell in the folder you saved it to (in File Explorer, hold Shift, right-click the folder and choose “Open PowerShell window here” or “Open in Terminal”).'
-      : 'Open Terminal and go to the folder you saved it to, for example cd ~/Downloads.';
-  ui.command.textContent = shell === 'powershell' ? `powershell -ExecutionPolicy Bypass -File .\\${filename}` : `bash ${filename}`;
+  const steps = runSteps(os, filename);
+  ui.openStep.textContent = steps.open;
+  ui.command.textContent = steps.command;
+  ui.prerequisite.innerHTML = gitPrerequisite(os);
 }
 
 /* ---------- Clone: account and repositories ---------- */
@@ -393,7 +384,9 @@ ownerForm.addEventListener('submit', async (event) => {
     listing = result;
     settings.owner = result.owner;
     ownerInput.value = result.owner;
+    rememberOwner(settings, result.owner);
     save();
+    renderRecentOwners();
     selected.clear();
     for (const repo of result.repos) if (isEligible(repo)) selected.add(repo.name);
     const kind = result.ownerType === 'Organization' ? 'organisation' : 'user';
@@ -490,17 +483,21 @@ function refresh(mode: Mode): void {
       !dest.path.trim() ? 'entered a destination folder (step 3)' : '',
     ].filter(Boolean);
     showOutput('clone', missing, () => ({
-      shell: dest.shell,
-      filename: cloneScriptFilename({ owner: listing!.owner, shell: dest.shell }),
+      os: dest.os,
+      filename: cloneScriptFilename({ owner: listing!.owner, shell: shellFor(dest.os) }),
       script: generateCloneScript({
-        owner: listing!.owner, ownerType: listing!.ownerType, protocol: settings.protocol, repos, ...dest,
+        owner: listing!.owner, ownerType: listing!.ownerType, protocol: settings.protocol, repos,
+        path: dest.path, storage: dest.storage, shell: shellFor(dest.os),
       }),
     }));
   } else {
     showOutput('update', dest.path.trim() ? [] : ['entered the folder that holds your clones (step 1)'], () => ({
-      shell: dest.shell,
-      filename: updateScriptFilename(dest.shell),
-      script: generateUpdateScript({ ...dest, includeUntracked: settings.includeUntracked, restoreWork: settings.restoreWork }),
+      os: dest.os,
+      filename: updateScriptFilename(shellFor(dest.os)),
+      script: generateUpdateScript({
+        path: dest.path, storage: dest.storage, shell: shellFor(dest.os),
+        includeUntracked: settings.includeUntracked, restoreWork: settings.restoreWork,
+      }),
     }));
   }
 }
@@ -530,13 +527,24 @@ document.addEventListener('click', (event) => {
 });
 document.querySelectorAll('a[data-policy], a[data-changelog]').forEach((a) => a.setAttribute('aria-haspopup', 'dialog'));
 
+function renderRecentOwners(): void {
+  $('#owner-recent').replaceChildren(...settings.recentOwners.map((o) => Object.assign(document.createElement('option'), { value: o })));
+}
+
 $('#forget-settings').addEventListener('click', () => {
   clearSettings();
-  $('#forget-status').textContent = 'Your saved settings have been cleared.';
+  settings.recentOwners = [];
+  settings.recentLocations = [];
+  renderRecentOwners();
+  refreshDestination('clone');
+  refreshDestination('update');
+  $('#forget-status').textContent =
+    'Your saved settings, recent accounts and recent folders have been cleared from this browser. What you change from now on will be remembered again.';
 });
 
 /* ---------- Start ---------- */
 
+renderRecentOwners();
 renderDestination('clone');
 renderDestination('update');
 renderOutput('clone');

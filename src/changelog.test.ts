@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { parseChangelog } from './changelog';
 
-const sample = `# [1.1.0](https://github.com/adrianeyre/github-clone/compare/v1.0.0...v1.1.0) (2026-11-01)
+const sample = `# [1.1.0](https://github.com/adrianeyre/github-harbor/compare/v1.0.0...v1.1.0) (2026-11-01)
 
 
 ### Features
 
-* **update:** restore stashes after pulling ([abc1234](https://github.com/adrianeyre/github-clone/commit/abc1234))
-* add SSH cloning ([def5678](https://github.com/adrianeyre/github-clone/commit/def5678))
+* **update:** restore stashes after pulling ([abc1234](https://github.com/adrianeyre/github-harbor/commit/abc1234))
+* add SSH cloning ([def5678](https://github.com/adrianeyre/github-harbor/commit/def5678))
 
 ### BREAKING CHANGES
 

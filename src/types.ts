@@ -1,4 +1,6 @@
 export type Shell = 'powershell' | 'bash';
+/** The computer the script will run on. Windows gets PowerShell; macOS and Linux get Bash. */
+export type Os = 'windows' | 'macos' | 'linux';
 export type StorageKind = 'local' | 'nas';
 export type Protocol = 'https' | 'ssh';
 export type OwnerType = 'Organization' | 'User';
