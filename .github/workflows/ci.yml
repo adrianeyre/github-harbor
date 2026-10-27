@@ -1,0 +1,138 @@
+# The gate (typecheck, tests, build) on every pull request and every push to
+# main. On main it then releases with semantic-release and publishes the site
+# to GitHub Pages, in that order, so the footer's version and Changelog always
+# match the release just made.
+#
+# Each action is pinned to the commit of its release, with the release named beside it.
+name: CI and Pages
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Read-only unless a job says otherwise.
+permissions:
+  contents: read
+
+# A pull request pushed to again cancels its now out-of-date run; main's runs
+# each finish, as each may release and deploy.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  NODE_VERSION: 26.10.0
+
+jobs:
+  gate:
+    name: Typecheck, test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      # Includes running the generated Bash and PowerShell scripts against real
+      # git repositories; ubuntu-latest has both bash and pwsh.
+      - run: npm test
+      - run: npm run build
+
+  # A merge into main is released by semantic-release (see .releaserc.json): the
+  # next version from the Conventional Commits since the last `v*` tag,
+  # CHANGELOG.md, package.json set to that version in a `chore(release)` commit,
+  # the tag and a GitHub release. No release-worthy commits means no release.
+  release:
+    name: Release
+    needs: gate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Two merges in quick succession release one after the other, never at once.
+    concurrency:
+      group: release
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Every commit and tag, for semantic-release to find the last release.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Built from the tip of main after the release, so it includes the release
+  # commit's version and CHANGELOG.md (that commit is `[skip ci]`, so it would
+  # never trigger a build of its own). Also runs by hand from the Actions tab.
+  pages-build:
+    name: Build the website
+    needs: [gate, release]
+    if: >-
+      always() && needs.gate.result == 'success' &&
+      (needs.release.result == 'success' || needs.release.result == 'skipped') &&
+      github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      # Configure Pages reads the site's settings; it writes nothing.
+      pages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - run: npm ci
+      - name: Build
+        run: npm run build
+        env:
+          # The canonical, Open Graph and sitemap addresses, from the Pages settings.
+          SITE_URL: ${{ steps.pages.outputs.base_url }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: dist/
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: pages-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # One deployment at a time; a newer run waits rather than cancelling one that is publishing.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
