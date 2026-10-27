@@ -1,0 +1,41 @@
+<!doctype html>
+<!-- Source for public/og-image.png (1200 × 630). Re-render with: bash brand/render.sh -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: Plex; src: url("../node_modules/@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-700-normal.woff2"); font-weight: 700; }
+  @font-face { font-family: Plex; src: url("../node_modules/@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-400-normal.woff2"); font-weight: 400; }
+  @font-face { font-family: Mono; src: url("../node_modules/@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2"); }
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    background: radial-gradient(1000px 500px at 85% 0%, rgba(34,197,94,.18), transparent 60%), #0F172A;
+    color: #F8FAFC; font-family: Plex, sans-serif; display: grid; grid-template-columns: 1fr 460px; gap: 48px;
+    padding: 72px 72px 64px; box-sizing: border-box;
+  }
+  .brand { display: flex; align-items: center; gap: 18px; font-size: 34px; font-weight: 700; }
+  .brand svg { width: 64px; height: 64px; }
+  h1 { font-size: 64px; line-height: 1.06; letter-spacing: -0.02em; margin: 56px 0 24px; }
+  h1 em { color: #22C55E; font-style: normal; }
+  p { font-size: 28px; color: #CBD5E1; margin: 0; line-height: 1.4; }
+  .term { align-self: center; background: #1B2336; border: 2px solid #334155; border-radius: 20px; padding: 28px 30px; font-family: Mono, monospace; font-size: 21px; line-height: 1.75; color: #CBD5E1; box-shadow: 0 30px 80px rgba(0,0,0,.45); }
+  .dots { display: flex; gap: 10px; margin-bottom: 18px; } .dots i { width: 14px; height: 14px; border-radius: 50%; background: #475569; display: block; }
+  .ok { color: #4ADE80; } .dim { color: #94A3B8; } .cy { color: #7DD3FC; }
+</style>
+</head>
+<body>
+  <div>
+    <div class="brand"><img src="../public/favicon.svg" width="64" height="64" alt=""> Repo Harbor</div>
+    <h1>Clone a whole GitHub org <em>to your NAS</em> &mdash; and keep it up to date.</h1>
+    <p>Organisations or users &middot; local disk or NAS &middot; PowerShell or Bash</p>
+  </div>
+  <div class="term">
+    <div class="dots"><i></i><i></i><i></i></div>
+    <div class="cy">[1/24] api</div><div class="ok">&nbsp;&nbsp;Cloned</div>
+    <div class="cy">[2/24] web</div><div class="ok">&nbsp;&nbsp;Cloned</div>
+    <div class="cy">[3/24] docs</div><div class="dim">&nbsp;&nbsp;Stashed local changes</div><div class="ok">&nbsp;&nbsp;main is up to date</div>
+    <div class="dim">&hellip;</div>
+    <div>Done. Updated: 24 of 24</div>
+  </div>
+</body>
+</html>

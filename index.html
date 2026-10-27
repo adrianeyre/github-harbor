@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Repo Harbor – Clone every GitHub repo in an organisation or user to your NAS</title>
+    <meta
+      name="description"
+      content="Clone every repository from a GitHub organisation or user into its own folder on a NAS or local disk, then keep them all up to date: stash local changes and pull main or master in one go. Free, open source, runs on Windows, macOS and Linux."
+    />
+    <meta name="keywords" content="clone all GitHub repositories, GitHub organisation backup, clone org repos to NAS, bulk git pull, update all git repos, git stash pull main master, PowerShell, Bash" />
+    <meta name="author" content="Adrian Eyre" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href="{{SITE_URL}}/" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0F172A" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F8FAFC" media="(prefers-color-scheme: light)" />
+
+    <!-- Icons -->
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
+
+    <!-- Open Graph: Facebook, LinkedIn, Slack, Teams, WhatsApp, Discord… -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Repo Harbor" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:url" content="{{SITE_URL}}/" />
+    <meta property="og:title" content="Repo Harbor – Clone a whole GitHub org to your NAS, and keep it up to date" />
+    <meta
+      property="og:description"
+      content="Pick a GitHub organisation or user and a NAS or local folder, and get a ready-to-run script that clones every repo into its own folder, or stashes your changes and pulls main or master across all of them."
+    />
+    <meta property="og:image" content="{{SITE_URL}}/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Repo Harbor: Clone a whole GitHub org to your NAS and keep it up to date, beside a terminal showing repositories being cloned and updated." />
+
+    <!-- X / Twitter, Bluesky and Mastodon read these -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Repo Harbor – Clone a whole GitHub org to your NAS, and keep it up to date" />
+    <meta name="twitter:description" content="Clone every repo from a GitHub organisation or user to a NAS or local disk, then stash and pull main/master across all of them." />
+    <meta name="twitter:image" content="{{SITE_URL}}/og-image.png" />
+    <meta name="twitter:image:alt" content="Repo Harbor: Clone a whole GitHub org to your NAS and keep it up to date." />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Repo Harbor",
+        "url": "{{SITE_URL}}/",
+        "image": "{{SITE_URL}}/og-image.png",
+        "description": "Clone every repository from a GitHub organisation or user to a NAS or local disk, one folder per repository, and keep them up to date by stashing local changes and pulling main or master.",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Windows, macOS, Linux",
+        "browserRequirements": "Requires JavaScript",
+        "softwareVersion": "{{VERSION}}",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "GBP" },
+        "author": { "@type": "Person", "name": "Adrian Eyre", "url": "https://github.com/adrianeyre" },
+        "codeRepository": "{{REPO_URL}}",
+        "accessibilityFeature": ["highContrastDisplay", "readingOrder", "structuralNavigation", "tableOfContents"],
+        "accessibilityHazard": "none",
+        "accessibilityControl": ["fullKeyboardControl", "fullMouseControl", "fullTouchControl"]
+      }
+    </script>
+  </head>
+  <body>
+    <svg xmlns="http://www.w3.org/2000/svg" class="sprite" aria-hidden="true" focusable="false">
+      <defs>
+        <symbol id="i-branch" viewBox="0 0 24 24"><line x1="6" x2="6" y1="3" y2="15" /><circle cx="18" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><path d="M18 9a9 9 0 0 1-9 9" /></symbol>
+        <symbol id="i-folder-down" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" /><path d="M12 10v6" /><path d="m15 13-3 3-3-3" /></symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></symbol>
+        <symbol id="i-hard-drive" viewBox="0 0 24 24"><line x1="22" x2="2" y1="12" y2="12" /><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /><line x1="6" x2="6.01" y1="16" y2="16" /><line x1="10" x2="10.01" y1="16" y2="16" /></symbol>
+        <symbol id="i-server" viewBox="0 0 24 24"><rect width="20" height="8" x="2" y="2" rx="2" ry="2" /><rect width="20" height="8" x="2" y="14" rx="2" ry="2" /><line x1="6" x2="6.01" y1="6" y2="6" /><line x1="6" x2="6.01" y1="18" y2="18" /></symbol>
+        <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></symbol>
+        <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></symbol>
+        <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></symbol>
+        <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></symbol>
+        <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></symbol>
+        <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></symbol>
+        <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></symbol>
+        <symbol id="i-terminal" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5" /><line x1="12" x2="20" y1="19" y2="19" /></symbol>
+        <symbol id="i-loader" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></symbol>
+        <symbol id="i-shield-check" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></symbol>
+        <symbol id="i-github" viewBox="0 0 16 16"><path fill="currentColor" stroke="none" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" /></symbol>
+      </defs>
+    </svg>
+
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="./" aria-label="Repo Harbor, home">
+          <img src="favicon.svg" alt="" width="32" height="32" />
+          <span>Repo Harbor</span>
+        </a>
+        <a class="header-link" href="{{REPO_URL}}">
+          <svg class="icon" aria-hidden="true"><use href="#i-github" /></svg>
+          <span>Source<span class="hide-sm"> on GitHub</span></span>
+        </a>
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <section class="hero container" aria-labelledby="page-title">
+        <h1 id="page-title">Clone every repo in a GitHub organisation or user <span class="accent">to your NAS</span>, and keep them up to date</h1>
+        <p class="lead">
+          Choose an account and a folder on a NAS or local disk. Repo Harbor writes a script for you to run that clones
+          each repository into its own sub-folder, or, for clones you already have, stashes your changes and pulls
+          <code>main</code> or <code>master</code> in every one.
+        </p>
+        <ul class="hero-points">
+          <li><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Organisations and users</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>NAS or local storage</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Windows, macOS and Linux</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Only needs git</li>
+        </ul>
+      </section>
+
+      <noscript>
+        <div class="container">
+          <p class="notice notice-warning">Repo Harbor needs JavaScript to look up repositories and write your script. Please turn it on and reload the page.</p>
+        </div>
+      </noscript>
+
+      <div class="container app">
+        <div class="tabs" role="tablist" aria-label="What would you like to do?">
+          <button type="button" class="tab" role="tab" id="tab-clone" aria-controls="panel-clone" aria-selected="true">
+            <svg class="icon" aria-hidden="true"><use href="#i-folder-down" /></svg>
+            <span><span class="tab-title">Clone repositories</span><span class="tab-sub">Copy an organisation or user's repos</span></span>
+          </button>
+          <button type="button" class="tab" role="tab" id="tab-update" aria-controls="panel-update" aria-selected="false" tabindex="-1">
+            <svg class="icon" aria-hidden="true"><use href="#i-refresh" /></svg>
+            <span><span class="tab-title">Update existing clones</span><span class="tab-sub">Stash changes and pull main/master</span></span>
+          </button>
+        </div>
+
+        <!-- ============ Clone ============ -->
+        <section class="panel" id="panel-clone" role="tabpanel" aria-labelledby="tab-clone" tabindex="0">
+          <ol class="steps">
+            <li class="card step">
+              <h2 class="step-title"><span class="step-num" aria-hidden="true">1</span>Choose the GitHub account</h2>
+              <form id="owner-form" class="stack" novalidate>
+                <div class="field">
+                  <label for="owner">Organisation or username</label>
+                  <p class="hint" id="owner-hint">For example <code>vercel</code>, <code>torvalds</code> or a link such as <code>https://github.com/microsoft</code>.</p>
+                  <div class="input-row">
+                    <input id="owner" name="owner" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" required aria-describedby="owner-hint owner-error" />
+                    <button type="submit" class="button button-primary" id="owner-submit">
+                      <svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>
+                      <span>Find repositories</span>
+                    </button>
+                  </div>
+                  <p class="error" id="owner-error" hidden></p>
+                </div>
+                <details class="disclosure">
+                  <summary>Include private repositories (optional token)</summary>
+                  <div class="field">
+                    <label for="token">GitHub personal access token</label>
+                    <p class="hint" id="token-hint">
+                      Only needed to list private repositories, or to raise GitHub's limit of 60 look-ups an hour. Use a
+                      <a href="https://github.com/settings/personal-access-tokens/new">fine-grained token</a> with read-only
+                      “Metadata” access. It is sent only to GitHub, is never saved and is not put in the script.
+                    </p>
+                    <input id="token" name="token" type="password" autocomplete="off" spellcheck="false" aria-describedby="token-hint" />
+                  </div>
+                </details>
+              </form>
+              <p class="status" id="owner-status" role="status"></p>
+            </li>
+
+            <li class="card step">
+              <h2 class="step-title" id="repos-title"><span class="step-num" aria-hidden="true">2</span>Pick the repositories</h2>
+              <div id="repos-empty" class="empty">
+                <svg class="icon" aria-hidden="true"><use href="#i-folder-down" /></svg>
+                <p>Find an account in step 1 to see its repositories here.</p>
+              </div>
+              <div id="repos-ui" hidden>
+                <div class="toolbar">
+                  <div class="field field-search">
+                    <label for="repo-filter" class="visually-hidden">Filter repositories by name</label>
+                    <svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>
+                    <input id="repo-filter" type="search" placeholder="Filter by name" autocomplete="off" spellcheck="false" />
+                  </div>
+                  <label class="check"><input type="checkbox" id="include-forks" checked /><span>Include forks</span></label>
+                  <label class="check"><input type="checkbox" id="include-archived" /><span>Include archived</span></label>
+                </div>
+                <div class="toolbar toolbar-secondary">
+                  <p class="count" id="repo-count" aria-live="polite"></p>
+                  <div class="button-group">
+                    <button type="button" class="button button-small" id="select-all">Select all shown</button>
+                    <button type="button" class="button button-small" id="select-none">Clear shown</button>
+                  </div>
+                </div>
+                <fieldset class="repo-fieldset">
+                  <legend class="visually-hidden">Repositories to clone</legend>
+                  <ul class="repo-list" id="repo-list"></ul>
+                </fieldset>
+              </div>
+            </li>
+
+            <li class="card step">
+              <h2 class="step-title"><span class="step-num" aria-hidden="true">3</span>Choose where to put them</h2>
+              <div data-destination="clone"></div>
+            </li>
+
+            <li class="card step">
+              <h2 class="step-title"><span class="step-num" aria-hidden="true">4</span>Get your clone script</h2>
+              <fieldset class="field segmented-field">
+                <legend>Clone using</legend>
+                <div class="segmented">
+                  <label><input type="radio" name="protocol" value="https" checked /><span>HTTPS</span></label>
+                  <label><input type="radio" name="protocol" value="ssh" /><span>SSH</span></label>
+                </div>
+                <p class="hint">HTTPS works anywhere and uses your saved git sign-in for private repositories. Choose SSH if you have an SSH key set up with GitHub.</p>
+              </fieldset>
+              <div data-output="clone"></div>
+            </li>
+          </ol>
+        </section>
+
+        <!-- ============ Update ============ -->
+        <section class="panel" id="panel-update" role="tabpanel" aria-labelledby="tab-update" tabindex="0" hidden>
+          <ol class="steps">
+            <li class="card step">
+              <h2 class="step-title"><span class="step-num" aria-hidden="true">1</span>Where are your clones?</h2>
+              <p class="hint step-intro">The folder that holds one sub-folder per repository, such as the destination you cloned into.</p>
+              <div data-destination="update"></div>
+            </li>
+            <li class="card step">
+              <h2 class="step-title"><span class="step-num" aria-hidden="true">2</span>Choose what happens to local changes</h2>
+              <fieldset class="options">
+                <legend class="visually-hidden">Local changes</legend>
+                <label class="option">
+                  <input type="checkbox" id="include-untracked" checked aria-describedby="include-untracked-hint" />
+                  <span>
+                    <span class="option-title">Stash new, untracked files too</span>
+                    <span class="hint" id="include-untracked-hint">Files git isn't tracking yet are put away with your other changes, so nothing gets in the way of the pull.</span>
+                  </span>
+                </label>
+                <label class="option">
+                  <input type="checkbox" id="restore-work" aria-describedby="restore-work-hint" />
+                  <span>
+                    <span class="option-title">Go back to my branch and restore my changes</span>
+                    <span class="hint" id="restore-work-hint">After updating <code>main</code>/<code>master</code>, switch back to the branch each repository was on and re-apply its stash. Leave this off to stay on <code>main</code>/<code>master</code> with your changes kept safely in <code>git stash list</code>.</span>
+                  </span>
+                </label>
+              </fieldset>
+              <div class="notice notice-info">
+                <svg class="icon" aria-hidden="true"><use href="#i-info" /></svg>
+                <p>Each repository pulls <code>main</code>, or <code>master</code> when there is no <code>main</code>. Updates only ever fast-forward, so no merge commits are made, and repositories in the middle of a merge or rebase are skipped untouched.</p>
+              </div>
+            </li>
+            <li class="card step">
+              <h2 class="step-title"><span class="step-num" aria-hidden="true">3</span>Get your update script</h2>
+              <div data-output="update"></div>
+            </li>
+          </ol>
+        </section>
+      </div>
+
+      <section class="container faq" aria-labelledby="faq-title">
+        <h2 id="faq-title">Questions</h2>
+        <div class="faq-grid">
+          <details class="card faq-item">
+            <summary><h3>Why do I run a script instead of the website doing it?</h3></summary>
+            <p>A web page isn't allowed to run git or write to your disks and network shares. So Repo Harbor does the parts a browser can: it finds the repositories and writes a script that's ready to run. You can read the script before you run it, and it never sends your files anywhere.</p>
+          </details>
+          <details class="card faq-item">
+            <summary><h3>How do I point it at my NAS?</h3></summary>
+            <p>On Windows, use a network path such as <code>\\nas\share\code</code> or a mapped drive like <code>Z:\code</code>. On macOS, connect to the share in Finder and use <code>/Volumes/share/code</code>. On Linux, use where the share is mounted, such as <code>/mnt/nas/code</code>. With NAS selected, the script tells git to trust the repositories there, because shares often report a different file owner and git would otherwise refuse to work with them.</p>
+          </details>
+          <details class="card faq-item">
+            <summary><h3>Can I run it again?</h3></summary>
+            <p>Yes. The clone script skips repositories that are already cloned, so running it again only adds new ones. The update script can run as often as you like, for example from Task Scheduler or cron.</p>
+          </details>
+          <details class="card faq-item">
+            <summary><h3>What about private repositories?</h3></summary>
+            <p>Add a token in step 1 so the website can list them. To clone them, git on your computer must be signed in to GitHub. Git for Windows and GitHub Desktop do this for you; elsewhere use <code>gh auth login</code> or an SSH key.</p>
+          </details>
+          <details class="card faq-item">
+            <summary><h3>Where did my changes go?</h3></summary>
+            <p>Into a stash named <code>repo-harbor auto-stash</code> with the date and the branch you were on. Run <code>git stash list</code> in the repository to see it and <code>git stash pop</code> to bring it back. The script lists every repository it stashed in.</p>
+          </details>
+          <details class="card faq-item">
+            <summary><h3>What does it need?</h3></summary>
+            <p><a href="https://git-scm.com/downloads">Git</a>, and PowerShell 5.1 or later (included with Windows) or Bash 3.2 or later (included with macOS and Linux). Nothing else is installed.</p>
+          </details>
+        </div>
+      </section>
+
+      <!-- The policies. Without JavaScript they are read here, at the footer's
+           links; main.ts moves each into a dialog the footer's buttons open. -->
+      <div class="policies" id="policies">
+        <section class="policy container narrow" id="privacy-policy" aria-labelledby="privacy-policy-title" data-close-label="Close the privacy policy">
+          <h2 id="privacy-policy-title">Privacy Policy</h2>
+          <div class="policy-body">
+            <p class="policy-updated">First edition, effective 27 October 2026.</p>
+
+            <h3>This website</h3>
+            <p>
+              This policy covers Repo Harbor, {{SITE_URL}}/, a single static page published from its
+              <a href="{{REPO_URL}}">GitHub repository</a> and hosted by GitHub Pages. It has no accounts, no sign-in and
+              no server of its own.
+            </p>
+
+            <h3>What this website collects</h3>
+            <p>
+              Nothing. There is no analytics, no tracking and no advertising, and the page's fonts, icons and images all
+              come from this site, so loading it sends nothing to anyone else.
+            </p>
+
+            <h3>What you type in</h3>
+            <ul>
+              <li>
+                <strong>The organisation or username</strong> you enter is sent straight from your browser to GitHub's
+                public API, at api.github.com, to list its repositories. Nothing passes through any other server.
+              </li>
+              <li>
+                <strong>A token</strong>, if you add one, is sent only to GitHub, in the same requests. It is held in the
+                page's memory while the tab is open, is never saved and is never put in a script.
+              </li>
+              <li>
+                <strong>Folders and options</strong> you choose stay in your browser. Your scripts are made in your
+                browser too, and are only saved when you download them.
+              </li>
+              <li>
+                <strong>Your settings</strong> (the account name, folders and options, but never a token) are remembered
+                in your browser's local storage so they are filled in next time, as the Cookie Policy explains. They
+                never leave your device.
+              </li>
+            </ul>
+
+            <h3>Who else sees your visit</h3>
+            <ul>
+              <li>
+                <strong>GitHub</strong> hosts this website and answers its API requests. Like any web host, it receives
+                your IP address and what your browser asks for, and may log them, as the
+                <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub General Privacy Statement</a>
+                explains.
+              </li>
+              <li><strong>Links</strong> to other sites leave this website, and those sites have their own privacy policies.</li>
+            </ul>
+
+            <h3>The scripts</h3>
+            <p>
+              The scripts run on your computer and talk only to the git remotes they clone from or pull from, which are
+              GitHub's. They report nothing to Repo Harbor or anyone else.
+            </p>
+
+            <h3>Your rights</h3>
+            <p>
+              This website holds nothing about you. To clear your saved settings, use the button in the Cookie Policy or
+              clear this site's data in your browser. For a question about this policy,
+              <a href="{{REPO_URL}}/issues">open an issue on GitHub</a>.
+            </p>
+
+            <h3>Changes</h3>
+            <p>This policy may change along with the website. The date at the top shows when it last changed.</p>
+          </div>
+        </section>
+
+        <section class="policy container narrow" id="terms-and-conditions" aria-labelledby="terms-and-conditions-title" data-close-label="Close the terms and conditions">
+          <h2 id="terms-and-conditions-title">Terms and Conditions</h2>
+          <div class="policy-body">
+            <p class="policy-updated">First edition, effective 27 October 2026.</p>
+
+            <h3>Using this website</h3>
+            <p>
+              Repo Harbor writes scripts that clone and update git repositories. By using it, you agree to these terms
+              and to GitHub's own terms, for the GitHub Pages this site is hosted on and for the GitHub API it uses.
+            </p>
+
+            <h3>Your scripts, your computer</h3>
+            <p>
+              The scripts are written for you to read before you run them. You run them on your own computer, at your
+              own risk, against your own storage. They only create folders, clone, fetch, stash, switch branches and
+              fast-forward, and they never delete files or force anything. Still, keep backups of work that matters.
+            </p>
+
+            <h3>Repositories and accounts</h3>
+            <p>
+              Only clone repositories you are allowed to. Their licences, and the terms of the GitHub accounts and
+              organisations they belong to, still apply. A token you add must be your own, and you are responsible for it.
+            </p>
+
+            <h3>Names and trademarks</h3>
+            <p>GitHub and Git are trademarks of their owners and are named only to say what Repo Harbor works with. Repo Harbor is not made or endorsed by GitHub.</p>
+
+            <h3>No warranty</h3>
+            <p>
+              This website and the scripts it writes are provided as they are, without warranty of any kind. Its authors
+              are not liable for any loss arising from their use, to the extent the law allows.
+            </p>
+
+            <h3>Law</h3>
+            <p>
+              These terms are governed by the law of England and Wales, whose courts settle any dispute about them. If you
+              live elsewhere in the United Kingdom or in the European Union, you also keep the protection of your own
+              country's mandatory laws.
+            </p>
+
+            <h3>Changes and contact</h3>
+            <p>These terms may change along with the website. The date at the top shows when they last changed. For a question, <a href="{{REPO_URL}}/issues">open an issue on GitHub</a>.</p>
+          </div>
+        </section>
+
+        <section class="policy container narrow" id="cookie-policy" aria-labelledby="cookie-policy-title" data-close-label="Close the cookie policy">
+          <h2 id="cookie-policy-title">Cookie Policy</h2>
+          <div class="policy-body">
+            <p class="policy-updated">First edition, effective 27 October 2026.</p>
+
+            <h3>No cookies</h3>
+            <p>
+              This website sets no cookies. It remembers your settings in your browser's local storage, only so you don't
+              have to type them in again. That is strictly for a feature you use, so there's nothing to accept and no
+              banner asks you to.
+            </p>
+
+            <h3>What is stored</h3>
+            <div class="table-wrap" tabindex="0" role="region" aria-label="Cookies and browser storage, scrollable">
+              <table>
+                <caption>Cookies and browser storage this website uses</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Purpose</th>
+                    <th scope="col">How long</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>repo-harbor:settings</code></td>
+                    <td>Local storage</td>
+                    <td>The last account name, destination folders, storage type, shell and options you chose. Never a token.</td>
+                    <td>Until you clear it</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="policy-action">
+              <button type="button" class="button" id="forget-settings">Clear my saved settings</button>
+              <span class="status" id="forget-status" role="status"></span>
+            </p>
+
+            <h3>Other sites</h3>
+            <p>Links to GitHub and other sites leave this website, and those sites may set their own cookies under their own policies.</p>
+          </div>
+        </section>
+
+        <section class="policy container narrow" id="accessibility" aria-labelledby="accessibility-title" data-close-label="Close the accessibility statement">
+          <h2 id="accessibility-title">Accessibility</h2>
+          <div class="policy-body">
+            <p class="policy-updated">First edition, effective 27 October 2026.</p>
+
+            <div class="status-box">
+              <svg class="icon" aria-hidden="true"><use href="#i-shield-check" /></svg>
+              <p><strong>Conformance status:</strong> this website is built to meet the Web Content Accessibility Guidelines (WCAG) 2.2 at <strong>Level AA</strong>.</p>
+            </div>
+
+            <h3>What we have done</h3>
+            <ul>
+              <li><strong>Keyboard access</strong>: every link, button, tab, checkbox and dialog works with a keyboard alone. Focus has a clear outline that is never hidden, and a "Skip to main content" link comes first on the page.</li>
+              <li><strong>Screen readers</strong>: one main heading, headings in order and labelled landmarks. Every control has a visible label, and results, errors, copying and downloading are announced.</li>
+              <li><strong>Forms</strong>: labels and hints sit beside each field, errors say what went wrong and how to fix it, and your previous answers are filled in for you.</li>
+              <li><strong>Colour and contrast</strong>: text has at least 4.5:1 contrast with its background, and controls, icons and focus outlines at least 3:1, in both light and dark mode, which follow your device. Windows Contrast Themes are respected, and colour is never the only way something is shown.</li>
+              <li><strong>Motion</strong>: transitions are short, and they are switched off when your device asks for reduced motion.</li>
+              <li><strong>Zoom and reflow</strong>: the page reflows down to 320 pixels wide and at 400% zoom without scrolling sideways.</li>
+              <li><strong>Target sizes</strong>: every control is at least 24 by 24 pixels, and main buttons at least 44 pixels tall.</li>
+              <li><strong>Dialogs</strong>: these policies and the Changelog move focus in, keep it there, close on Escape and return focus to whatever opened them.</li>
+            </ul>
+
+            <h3>Known limitations</h3>
+            <ul>
+              <li>Long lines in the script preview scroll sideways inside their own frame on narrow screens. The frame can take focus, so the arrow keys scroll it.</li>
+              <li>The scripts' coloured output in the terminal also says everything in words, but how it looks depends on your terminal.</li>
+            </ul>
+
+            <h3>Feedback</h3>
+            <p>If something is hard to use, please <a href="{{REPO_URL}}/issues">open an issue on GitHub</a> and tell us what you were trying to do and which browser and assistive technology you used.</p>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <nav class="container" aria-label="About Repo Harbor">
+        <ul class="footer-links">
+          <li>
+            <a class="footer-link" href="{{REPO_URL}}">
+              <svg class="icon" aria-hidden="true"><use href="#i-github" /></svg>
+              <span class="footer-long">Website source</span>
+              <span class="visually-hidden"> on GitHub</span>
+            </a>
+          </li>
+          <li>
+            <a class="footer-link footer-version" href="{{REPO_URL}}/blob/main/CHANGELOG.md" data-changelog aria-label="Version: {{VERSION}}, Changelog">
+              <span class="footer-long">Version: </span>{{VERSION}}
+            </a>
+          </li>
+          <li><a class="footer-link" href="#privacy-policy" data-policy="privacy-policy">Privacy<span class="footer-long"> Policy</span></a></li>
+          <li><a class="footer-link" href="#terms-and-conditions" data-policy="terms-and-conditions">Terms<span class="footer-long"> and Conditions</span></a></li>
+          <li><a class="footer-link" href="#cookie-policy" data-policy="cookie-policy">Cookie<span class="footer-long"> Policy</span></a></li>
+          <li><a class="footer-link" href="#accessibility" data-policy="accessibility">Accessibility</a></li>
+        </ul>
+      </nav>
+    </footer>
+
+    <p class="visually-hidden" role="status" id="announcer"></p>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
