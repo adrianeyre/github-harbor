@@ -2,7 +2,7 @@
 <html lang="en-GB">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Repo Harbor – Clone every GitHub repo in an organisation or user to your NAS</title>
     <meta
       name="description"
@@ -149,7 +149,8 @@
                   <label for="owner">Organisation or username</label>
                   <p class="hint" id="owner-hint">For example <code>vercel</code>, <code>torvalds</code> or a link such as <code>https://github.com/microsoft</code>.</p>
                   <div class="input-row">
-                    <input id="owner" name="owner" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" required aria-describedby="owner-hint owner-error" />
+                    <input id="owner" name="owner" type="text" list="owner-recent" autocomplete="off" autocapitalize="off" spellcheck="false" required aria-describedby="owner-hint owner-error" />
+                    <datalist id="owner-recent"></datalist>
                     <button type="submit" class="button button-primary" id="owner-submit">
                       <svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>
                       <span>Find repositories</span>
@@ -299,7 +300,7 @@
         <section class="policy container narrow" id="privacy-policy" aria-labelledby="privacy-policy-title" data-close-label="Close the privacy policy">
           <h2 id="privacy-policy-title">Privacy Policy</h2>
           <div class="policy-body">
-            <p class="policy-updated">First edition, effective 27 October 2026.</p>
+            <p class="policy-updated">Second edition, effective 27 October 2026. It now covers the recent accounts and folders this website remembers.</p>
 
             <h3>This website</h3>
             <p>
@@ -329,9 +330,10 @@
                 browser too, and are only saved when you download them.
               </li>
               <li>
-                <strong>Your settings</strong> (the account name, folders and options, but never a token) are remembered
-                in your browser's local storage so they are filled in next time, as the Cookie Policy explains. They
-                never leave your device.
+                <strong>Your settings</strong> (your last choices, up to 5 recent accounts and up to 8 recent folders, but
+                never a token) are remembered in your browser's local storage so they can be filled in or suggested next
+                time, as the Cookie Policy explains. Folder names may include your NAS's server and share names. They
+                never leave your device, and you can clear them at any time.
               </li>
             </ul>
 
@@ -412,13 +414,17 @@
         <section class="policy container narrow" id="cookie-policy" aria-labelledby="cookie-policy-title" data-close-label="Close the cookie policy">
           <h2 id="cookie-policy-title">Cookie Policy</h2>
           <div class="policy-body">
-            <p class="policy-updated">First edition, effective 27 October 2026.</p>
+            <p class="policy-updated">Second edition, effective 27 October 2026. It now covers the recent accounts and folders this website remembers.</p>
 
             <h3>No cookies</h3>
             <p>
-              This website sets no cookies. It remembers your settings in your browser's local storage, only so you don't
-              have to type them in again. That is strictly for a feature you use, so there's nothing to accept and no
-              banner asks you to.
+              This website sets no cookies. It remembers your settings, and the accounts and folders you've used, in your
+              browser's local storage, only so you don't have to type them in again. That is strictly for a feature you
+              use, so there's nothing to accept and no banner asks you to.
+            </p>
+            <p>
+              Local storage stays on your device, in this browser only. It is never sent to this website, to GitHub or to
+              anyone else, and other websites can't read it.
             </p>
 
             <h3>What is stored</h3>
@@ -435,10 +441,16 @@
                 </thead>
                 <tbody>
                   <tr>
-                    <td><code>repo-harbor:settings</code></td>
-                    <td>Local storage</td>
-                    <td>The last account name, destination folders, storage type, shell and options you chose. Never a token.</td>
-                    <td>Until you clear it</td>
+                    <td rowspan="3"><code>repo-harbor:settings</code></td>
+                    <td rowspan="3">Local storage</td>
+                    <td><strong>Your last choices:</strong> the account name, the folder for each tab, NAS or local storage, the computer (Windows, macOS or Linux), HTTPS or SSH, and the fork, archived and stash options.</td>
+                    <td rowspan="3">Until you clear it</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Recent accounts:</strong> up to 5 organisations or users you looked up successfully, suggested in the account field.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Recent folders:</strong> up to 8 destination folders you copied or downloaded a script for, each with its storage type and computer, suggested in the folder field. These may include NAS server and share names.</td>
                   </tr>
                 </tbody>
               </table>
@@ -446,6 +458,15 @@
             <p class="policy-action">
               <button type="button" class="button" id="forget-settings">Clear my saved settings</button>
               <span class="status" id="forget-status" role="status"></span>
+            </p>
+
+            <h3>What is never stored</h3>
+            <p>Your GitHub token, the repositories listed and the scripts themselves are never stored. Scripts are only saved where you download them.</p>
+
+            <h3>Controlling it</h3>
+            <p>
+              Use <strong>Clear my saved settings</strong> above to remove everything this website has stored in this
+              browser. Clearing this site's data in your browser's settings, or using a private window, also works.
             </p>
 
             <h3>Other sites</h3>
@@ -465,7 +486,7 @@
 
             <h3>What we have done</h3>
             <ul>
-              <li><strong>Keyboard access</strong>: every link, button, tab, checkbox and dialog works with a keyboard alone. Focus has a clear outline that is never hidden, and a "Skip to main content" link comes first on the page.</li>
+              <li><strong>Keyboard access</strong>: every link, button, tab, checkbox and dialog works with a keyboard alone. Focus has a clear outline that the sticky header and footer never hide, and a "Skip to main content" link comes first on the page. On very short screens, or zoomed right in, the header and footer stop sticking so they don't take up the page.</li>
               <li><strong>Screen readers</strong>: one main heading, headings in order and labelled landmarks. Every control has a visible label, and results, errors, copying and downloading are announced.</li>
               <li><strong>Forms</strong>: labels and hints sit beside each field, errors say what went wrong and how to fix it, and your previous answers are filled in for you.</li>
               <li><strong>Colour and contrast</strong>: text has at least 4.5:1 contrast with its background, and controls, icons and focus outlines at least 3:1, in both light and dark mode, which follow your device. Windows Contrast Themes are respected, and colour is never the only way something is shown.</li>

@@ -1,4 +1,5 @@
 import type { CloneScriptOptions } from '../types';
+import { bashGitCheck, NAS_CLONE_CONFIG, psGitCheck } from './preflight';
 import { normalisePath, psQuote, shPath, shQuote } from './quote';
 
 function stamp(d: Date): string {
@@ -41,13 +42,14 @@ ${repoLines.join('\n')}
 ${o.storage === 'nas'
     ? `# Network shares often report a different file owner, which makes git refuse to work
 # ("detected dubious ownership"). Trust the repositories for these commands only.
-$GitArgs = @('-c', 'safe.directory=*')`
-    : '$GitArgs = @()'}
+$GitArgs = @('-c', 'safe.directory=*')
+# A NAS may be used from Windows, macOS and Linux: keep files exactly as committed and
+# ignore the executable bit, so a clone made on one never looks modified on another.
+$CloneArgs = @(${NAS_CLONE_CONFIG.map((c) => `'--config', '${c}'`).join(', ')})`
+    : `$GitArgs = @()
+$CloneArgs = @()`}
 
-if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-  Write-Host 'git was not found on your PATH. Install it from https://git-scm.com and try again.' -ForegroundColor Red
-  exit 1
-}
+${psGitCheck}
 
 $Destination = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Destination)
 try {
@@ -74,7 +76,7 @@ foreach ($repo in $Repos) {
     $failed += "$($repo.Name) (folder not empty)"
     continue
   }
-  & git @GitArgs clone --quiet -- $repo.Url $target
+  & git @GitArgs clone --quiet @CloneArgs -- $repo.Url $target
   if ($LASTEXITCODE -eq 0) {
     Write-Host '  Cloned' -ForegroundColor Green
     $cloned++
@@ -115,13 +117,14 @@ ${repoLines.join('\n')}
 ${o.storage === 'nas'
     ? `# Network shares often report a different file owner, which makes git refuse to work
 # ("detected dubious ownership"). Trust the repositories for these commands only.
-GIT=(git -c 'safe.directory=*')`
-    : 'GIT=(git)'}
+GIT=(git -c 'safe.directory=*')
+# A NAS may be used from Windows, macOS and Linux: keep files exactly as committed and
+# ignore the executable bit, so a clone made on one never looks modified on another.
+CLONE_OPTS=(${NAS_CLONE_CONFIG.map((c) => `--config ${c}`).join(' ')})`
+    : `GIT=(git)
+CLONE_OPTS=()`}
 
-if ! command -v git >/dev/null 2>&1; then
-  echo "git was not found on your PATH. Install it from https://git-scm.com and try again." >&2
-  exit 1
-fi
+${bashGitCheck}
 
 if ! mkdir -p -- "$DEST"; then
   echo "Could not create or open '$DEST'." >&2
@@ -148,7 +151,7 @@ for entry in "\${REPOS[@]}"; do
     failed+=("$name (folder not empty)")
     continue
   fi
-  if "\${GIT[@]}" clone --quiet -- "$url" "$target"; then
+  if "\${GIT[@]}" clone --quiet "\${CLONE_OPTS[@]}" -- "$url" "$target"; then
     echo "  Cloned"
     cloned=$((cloned + 1))
   else

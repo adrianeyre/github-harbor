@@ -1,4 +1,5 @@
 import type { UpdateScriptOptions } from '../types';
+import { bashGitCheck, psGitCheck } from './preflight';
 import { normalisePath, psQuote, shPath } from './quote';
 
 function stamp(d: Date): string {
@@ -51,10 +52,7 @@ ${o.storage === 'nas'
 $GitArgs = @('-c', 'safe.directory=*')`
     : '$GitArgs = @()'}
 
-if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-  Write-Host 'git was not found on your PATH. Install it from https://git-scm.com and try again.' -ForegroundColor Red
-  exit 1
-}
+${psGitCheck}
 
 $Destination = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Destination)
 if (-not (Test-Path -LiteralPath $Destination -PathType Container)) {
@@ -200,10 +198,7 @@ ${o.storage === 'nas'
 GIT=(git -c 'safe.directory=*')`
     : 'GIT=(git)'}
 
-if ! command -v git >/dev/null 2>&1; then
-  echo "git was not found on your PATH. Install it from https://git-scm.com and try again." >&2
-  exit 1
-fi
+${bashGitCheck}
 
 if [ ! -d "$DEST" ]; then
   echo "Destination '$DEST' does not exist or is not reachable." >&2

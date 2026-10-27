@@ -26,10 +26,26 @@ env:
   NODE_VERSION: 26.10.0
 
 jobs:
+  # On all three systems the scripts are written for. Each one runs the
+  # generated scripts for real in every shell it has:
+  #   - Windows: Git Bash, PowerShell 7 and Windows PowerShell 5.1
+  #   - macOS:   /bin/bash (3.2, the one every Mac has) and PowerShell 7
+  #   - Linux:   bash and PowerShell 7
   gate:
-    name: Typecheck, test and build
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    name: Typecheck, test and build (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: macos-latest
+            # Test with the bash that ships with macOS, not a newer one from Homebrew.
+            bash: /bin/bash
+          - os: windows-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      REPO_HARBOR_BASH: ${{ matrix.bash }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -40,8 +56,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
-      # Includes running the generated Bash and PowerShell scripts against real
-      # git repositories; ubuntu-latest has both bash and pwsh.
+      # Includes running the generated scripts against real git repositories.
       - run: npm test
       - run: npm run build
 

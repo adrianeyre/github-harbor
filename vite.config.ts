@@ -5,8 +5,8 @@ import { defineConfig } from 'vitest/config';
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string };
 
 /** Where the site is published. The Pages workflow passes the real address from `actions/configure-pages`. */
-const SITE_URL = (process.env.SITE_URL ?? 'https://adrianeyre.github.io/github-clone').replace(/\/+$/, '');
-const REPO_URL = (process.env.REPO_URL ?? 'https://github.com/adrianeyre/github-clone').replace(/\/+$/, '');
+const SITE_URL = (process.env.SITE_URL ?? 'https://adrianeyre.github.io/github-harbor').replace(/\/+$/, '');
+const REPO_URL = (process.env.REPO_URL ?? 'https://github.com/adrianeyre/github-harbor').replace(/\/+$/, '');
 
 /** Fills `{{SITE_URL}}`, `{{REPO_URL}}` and `{{VERSION}}` in index.html, and writes robots.txt and sitemap.xml. */
 function site(): Plugin {

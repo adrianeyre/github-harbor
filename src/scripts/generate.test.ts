@@ -29,6 +29,27 @@ describe('generateCloneScript', () => {
     expect(generateCloneScript(clone({ storage: 'nas', shell: 'bash' }))).toContain(`GIT=(git -c 'safe.directory=*')`);
   });
 
+  it('clones to a NAS so the same files work from Windows, macOS and Linux', () => {
+    expect(generateCloneScript(clone({ storage: 'nas' }))).toContain(
+      `$CloneArgs = @('--config', 'core.autocrlf=false', '--config', 'core.fileMode=false')`,
+    );
+    expect(generateCloneScript(clone({ storage: 'nas', shell: 'bash' }))).toContain(
+      'CLONE_OPTS=(--config core.autocrlf=false --config core.fileMode=false)',
+    );
+    expect(generateCloneScript(clone({ storage: 'local' }))).toContain('$CloneArgs = @()');
+    expect(generateCloneScript(clone({ storage: 'local', shell: 'bash' }))).toContain('CLONE_OPTS=()');
+  });
+
+  it.each(['powershell', 'bash'] as const)('checks git actually runs, not just that a %s git command exists', (shell) => {
+    for (const script of [generateCloneScript(clone({ shell })), generateUpdateScript(update({ shell }))]) {
+      expect(script).toMatch(/git --version/);
+      expect(script).not.toMatch(/command -v git|Get-Command git/);
+      expect(script).toMatch(/xcode-select --install/);
+      expect(script).toMatch(/winget install --id Git\.Git/);
+      expect(script).toMatch(/sudo apt install git/);
+    }
+  });
+
   it('writes a bash repo list that expands ~', () => {
     const sh = generateCloneScript(clone({ shell: 'bash', path: '~/code/acme' }));
     expect(sh.startsWith('#!/usr/bin/env bash')).toBe(true);

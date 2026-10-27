@@ -1,13 +1,29 @@
 {
-  "name": "repo-harbor",
+  "name": "github-harbor",
   "version": "1.0.0",
   "private": true,
-  "description": "Bulk clone and update every repository from a GitHub organisation or user onto a NAS or local disk.",
+  "description": "Repo Harbor: a website that writes ready-to-run PowerShell and Bash scripts for Windows, macOS and Linux to clone every repository of a GitHub organisation or user into its own folder on a NAS or local disk, and to keep them up to date by stashing local changes and fast-forwarding main or master.",
+  "keywords": [
+    "github",
+    "git",
+    "clone",
+    "bulk-clone",
+    "backup",
+    "nas",
+    "organisation",
+    "git-pull",
+    "git-stash",
+    "powershell",
+    "bash",
+    "windows",
+    "macos",
+    "linux"
+  ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/adrianeyre/github-clone.git"
+    "url": "https://github.com/adrianeyre/github-harbor.git"
   },
-  "homepage": "https://adrianeyre.github.io/github-clone/",
+  "homepage": "https://adrianeyre.github.io/github-harbor/",
   "type": "module",
   "engines": {
     "node": ">=22"
